@@ -108,7 +108,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
     if (result.success) {
       onClose();
     } else {
-      setErrorMsg(result.error || 'Failed to save student record to Supabase.');
+      setErrorMsg(result.error || 'Failed to save the student record.');
     }
   };
 
@@ -307,7 +307,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
             />
           </div>
 
-          {/* Security notice regarding school_id */}
+          {/* School assignment is managed automatically */}
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
             <span>

@@ -46,3 +46,16 @@ It does **not** make data invisible to a user who is authorized to receive it. D
 ## Existing database
 
 No database schema or RLS policy changes are required by this migration. Existing RLS remains an additional security layer.
+
+
+## Password protection
+SchoolOS does not store plaintext passwords and does not encrypt passwords for later recovery. Passwords are submitted over HTTPS to the backend and verified by Supabase Auth. Supabase stores salted bcrypt password hashes in its protected Auth schema; the application never receives the stored hash. This is intentionally one-way hashing, not reversible encryption. Password reset uses Supabase's recovery flow.
+
+The backend also limits repeated login/password-reset attempts, avoids logging password values, rejects oversized password inputs, and never returns authentication-provider error details to the browser.
+
+
+## Platform user provisioning
+
+The normal application path remains browser -> backend -> Supabase using the authenticated user's session and RLS.
+
+A separate server-only Supabase service-role client is used only for platform administration operations that require Auth Admin APIs (school creation, staff invitations, and role provisioning). `SUPABASE_SERVICE_ROLE_KEY` is never sent to the browser, never placed in `VITE_` variables, and never used by ordinary student/school data endpoints. Super Admin permissions are enforced by the backend before these operations are performed.

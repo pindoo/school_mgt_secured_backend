@@ -1,5 +1,4 @@
 import React, { Suspense, lazy, useState, useEffect, useCallback, useRef } from 'react';
-import { clearMockSession, setMockModeActive } from './lib/mockStore';
 import { loginWithBackend, getBackendSession, logoutFromBackend } from './lib/authApi';
 import { 
   fetchDashboardSummary,
@@ -36,7 +35,7 @@ const AttendanceView = lazy(() => import('./components/AttendanceView').then((m)
 const ClassesView = lazy(() => import('./components/ClassesView').then((m) => ({ default: m.ClassesView })));
 const ReportsView = lazy(() => import('./components/ReportsView').then((m) => ({ default: m.ReportsView })));
 const SchoolInfoView = lazy(() => import('./components/SchoolInfoView').then((m) => ({ default: m.SchoolInfoView })));
-const SettingsView = lazy(() => import('./components/SettingsView').then((m) => ({ default: m.SettingsView })));
+const SuperAdminView = lazy(() => import('./components/SuperAdminView').then((m) => ({ default: m.SuperAdminView })));
 import { CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
 
 export default function App() {
@@ -49,7 +48,7 @@ export default function App() {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash || '';
       const search = window.location.search || '';
-      return hash.includes('type=recovery') || search.includes('type=recovery');
+      return hash.includes('type=recovery') || search.includes('type=invite') || search.includes('type=magiclink') || search.includes('type=recovery');
     }
     return false;
   });
@@ -164,7 +163,7 @@ export default function App() {
     if (currentTab === 'students' || currentTab === 'admissions' || currentTab === 'attendance' || currentTab === 'classes' || currentTab === 'reports') {
       void loadStudents();
     }
-    if (currentTab === 'teachers' || currentTab === 'employees') {
+    if (currentTab === 'employees') {
       void loadEmployees();
     }
   }, [currentTab, isAuthenticated, profile, loadStudents, loadEmployees]);
@@ -174,7 +173,7 @@ export default function App() {
     // Recovery links are handled by UpdatePasswordView.
     const currentHash = typeof window !== 'undefined' ? window.location.hash || '' : '';
     const currentSearch = typeof window !== 'undefined' ? window.location.search || '' : '';
-    if (currentHash.includes('type=recovery') || currentSearch.includes('type=recovery')) {
+    if (currentHash.includes('type=recovery') || currentHash.includes('type=invite') || currentSearch.includes('type=recovery') || currentSearch.includes('type=invite')) {
       setIsRecoveryMode(true);
       setSessionChecked(true);
       return;
@@ -206,8 +205,12 @@ export default function App() {
       setIsAuthenticated(true);
       setProfile(session.profile);
       setUserEmail(session.email);
+      const sessionRole = session.profile.role?.toLowerCase();
+      setCurrentTab(sessionRole === 'super_admin' ? 'platform' : 'dashboard');
 
-      await loadDashboardData(true);
+      if (sessionRole !== 'super_admin') {
+        await loadDashboardData(true);
+      }
     } catch (e) {
       console.error('Session init error:', e);
       setIsAuthenticated(false);
@@ -235,13 +238,15 @@ export default function App() {
         return { success: false, error: result.error };
       }
 
-      clearMockSession();
-      setMockModeActive(false);
       setUnassignedProfileError(false);
       setProfile(result.profile);
       setUserEmail(result.email || emailInput.trim());
       setIsAuthenticated(true);
-      await loadDashboardData(true);
+      const loginRole = result.profile.role?.toLowerCase();
+      setCurrentTab(loginRole === 'super_admin' ? 'platform' : 'dashboard');
+      if (loginRole !== 'super_admin') {
+        await loadDashboardData(true);
+      }
 
       return { success: true };
     } catch (err: any) {
@@ -251,8 +256,6 @@ export default function App() {
 
   // 5. Logout handler
   const handleLogout = async () => {
-    clearMockSession();
-    setMockModeActive(false);
     await logoutFromBackend();
 
     setIsAuthenticated(false);
@@ -422,7 +425,6 @@ export default function App() {
           school={school}
           onLogout={handleLogout}
           onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-          onOpenSettings={() => setCurrentTab('settings')}
         />
 
         {/* Global Toast Notification */}
@@ -472,7 +474,7 @@ export default function App() {
                 </button>
               </div>
             </div>
-          ) : profile?.role?.toLowerCase() === 'teacher' && ['teachers', 'employees'].includes(currentTab) ? (
+          ) : profile?.role?.toLowerCase() === 'teacher' && currentTab === 'employees' ? (
             /* 2. Teacher Role UI Restriction for Staff Management Views */
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-8 max-w-xl mx-auto text-center space-y-4 shadow-xl">
               <div className="h-12 w-12 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
@@ -494,13 +496,16 @@ export default function App() {
             </div>
           ) : (
             <>
+              {currentTab === 'platform' && profile.role?.toLowerCase() === 'super_admin' && (
+                <SuperAdminView profile={profile} onToast={showToast} />
+              )}
+
               {currentTab === 'dashboard' && (
                 <DashboardView
                   profile={profile}
                   school={school}
                   students={students}
                   studentCount={dashboardSummary?.studentCount ?? students.length}
-                  classCount={dashboardSummary?.classCount ?? 0}
                   recentStudents={dashboardSummary?.recentStudents ?? students.slice(0, 5)}
                   employeesCount={dashboardSummary?.employeeCount ?? employees.length}
                   onNavigate={setCurrentTab}
@@ -533,7 +538,7 @@ export default function App() {
                 />
               )}
 
-              {(currentTab === 'teachers' || currentTab === 'employees') && (
+              {currentTab === 'employees' && (
                 <EmployeesView
                   employees={employees}
                   isLoading={employeesLoading}
@@ -582,18 +587,6 @@ export default function App() {
                 />
               )}
 
-              {currentTab === 'settings' && (
-                <SettingsView
-                  profile={profile}
-                  school={school}
-                  userEmail={userEmail}
-                  onConfigUpdated={() => {
-                    if (profile?.school_id) {
-                      void loadDashboardData(true);
-                    }
-                  }}
-                />
-              )}
             </>
           )}
         </main>

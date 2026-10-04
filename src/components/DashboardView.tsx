@@ -8,10 +8,7 @@ import {
   BarChart3, 
   ArrowRight, 
   Sparkles, 
-  ShieldCheck, 
   Calendar,
-  Clock,
-  CheckCircle2
 } from 'lucide-react';
 import { EmployeeProfile, School, Student, NavigationTab } from '../types';
 
@@ -20,7 +17,6 @@ interface DashboardViewProps {
   school: School | null;
   students: Student[];
   studentCount: number;
-  classCount: number;
   recentStudents: Student[];
   employeesCount: number;
   onNavigate: (tab: NavigationTab) => void;
@@ -32,7 +28,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   school,
   students,
   studentCount,
-  classCount,
   recentStudents,
   employeesCount,
   onNavigate,
@@ -61,29 +56,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 text-xs font-semibold">
               <Sparkles className="h-3.5 w-3.5" />
-              {isPrincipal ? 'Principal Portal' : isTeacher ? 'Teacher Portal' : 'Admin Portal'} • {school?.school_name || `School #${profile.school_id}`}
+              {isPrincipal ? 'Principal Portal' : isTeacher ? 'Teacher Portal' : 'Admin Portal'} • {school?.school_name || 'Your School'}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               {welcomeTitle}
             </h1>
             <p className="text-sm text-slate-400 max-w-xl">
-              Connected to Supabase. Records are authoritatively isolated to School ID{' '}
-              <span className="font-mono text-slate-200">#{profile.school_id}</span> via database Row Level Security.
+              Your school dashboard is ready. Manage students, admissions, attendance, classes, staff and reports from one place.
             </p>
           </div>
 
-          {/* Quick status pill */}
-          <div className="flex items-center gap-3">
-            <div className="px-4 py-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-400 uppercase font-semibold">RLS Status</p>
-                <p className="text-xs font-bold text-emerald-400 font-mono">Enforced by Database</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -116,10 +98,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
             <p className="text-base font-bold text-white truncate" title={school?.school_name}>
-              {school?.school_name || `School #${profile.school_id}`}
+              {school?.school_name || 'Your School'}
             </p>
             <p className="text-[11px] text-slate-400 font-mono mt-1">
-              School ID: #{profile.school_id}
+              
             </p>
           </div>
 
@@ -135,7 +117,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {studentCount}
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
-              Pupils in School #{profile.school_id}
+              Pupils enrolled
             </p>
           </div>
 
@@ -148,10 +130,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
             <p className="text-2xl font-bold text-white font-mono">
-              {classCount}
+              Up to 10th Grade
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
-              Grade levels configured
+              Grades 1–10
             </p>
           </div>
 
@@ -199,10 +181,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
             <p className="text-base font-bold text-white truncate" title={school?.school_name}>
-              {school?.school_name || `School #${profile.school_id}`}
+              {school?.school_name || 'Your School'}
             </p>
             <p className="text-[11px] text-slate-400 font-mono mt-1">
-              School ID: #{profile.school_id}
+              
             </p>
           </div>
 
@@ -218,7 +200,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {studentCount}
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
-              Enrolled in School #{profile.school_id}
+              Enrolled students
             </p>
           </div>
 
@@ -247,10 +229,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
             <p className="text-2xl font-bold text-white font-mono">
-              {classCount}
+              Up to 10th Grade
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
-              Active Grade Levels
+              Grades 1–10
             </p>
           </div>
         </div>
@@ -414,7 +396,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <span>Admissions Summary</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Overview of student intake for School #{profile.school_id}
+                  Overview of student intake
                 </p>
               </div>
               <button
@@ -486,11 +468,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block text-[11px]">Grade Levels:</span>
+                <span className="text-slate-400 block text-[11px]">Academic Range:</span>
                 <span className="text-xl font-bold font-mono text-white mt-1 block">
-                  {classCount} Classes
+                  Up to 10th Grade Classes
                 </span>
-                <span className="text-[10px] text-slate-500">Active class groups</span>
+                <span className="text-[10px] text-slate-500">Available grade levels</span>
               </div>
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
                 <span className="text-slate-400 block text-[11px]">School Faculty:</span>
@@ -511,8 +493,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="font-mono text-slate-400">Principal Only</span>
               </div>
               <div className="flex justify-between text-slate-400 text-[11px]">
-                <span>Database Isolation:</span>
-                <span className="font-mono text-blue-400 font-bold">RLS School #{profile.school_id}</span>
+                <span>School Data:</span>
+                <span className="font-mono text-blue-400 font-bold">School access</span>
               </div>
             </div>
           </div>
@@ -529,7 +511,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <span>Attendance Summary</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Daily classroom roll call for School #{profile.school_id}
+                  Daily classroom roll call
                 </p>
               </div>
               <button
@@ -552,7 +534,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-center">
                 <span className="text-[11px] text-slate-400 block font-semibold">Classes</span>
                 <span className="text-2xl font-bold font-mono text-indigo-400 mt-1 block">
-                  {classCount}
+                  Up to 10th Grade
                 </span>
               </div>
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-center">
@@ -632,7 +614,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   Recent Student Enrollments
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Latest students added to School #{profile.school_id}
+                  Latest students added
                 </p>
               </div>
               <button
@@ -693,45 +675,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             )}
           </div>
 
-          {/* Database RLS & Security Card */}
-          <div className="lg:col-span-5 bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-7 w-7 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
-                  <CheckCircle2 className="h-4 w-4" />
-                </div>
-                <h3 className="text-sm font-bold text-white">Database Authorization</h3>
+          {/* School Overview */}
+          <div className="lg:col-span-5 bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-7 w-7 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+                <BookOpen className="h-4 w-4" />
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Your profile is verified with Row Level Security on Supabase.
-              </p>
-
-              <div className="mt-4 p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-2 font-mono">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">School ID:</span>
-                  <span className="text-white font-bold">{profile.school_id}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Employee ID:</span>
-                  <span className="text-slate-300 truncate max-w-[140px]" title={profile.id}>
-                    {profile.id}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Assigned Role:</span>
-                  <span className="text-purple-400 uppercase font-sans font-bold text-[11px]">
-                    {profile.role}
-                  </span>
-                </div>
-              </div>
+              <h3 className="text-sm font-bold text-white">School Overview</h3>
             </div>
-
-            <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Live Supabase Session
-              </span>
-              <span>RLS Active</span>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Academic range and current school totals.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <span className="text-slate-500 block">Academic Range</span>
+                <span className="text-white font-bold mt-1 block">Grades 1–10</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <span className="text-slate-500 block">Staff Members</span>
+                <span className="text-white font-bold mt-1 block">{employeesCount}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 col-span-2">
+                <span className="text-slate-500 block">Students Enrolled</span>
+                <span className="text-white font-bold mt-1 block">{studentCount}</span>
+              </div>
             </div>
           </div>
         </div>

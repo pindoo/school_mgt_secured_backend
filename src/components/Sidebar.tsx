@@ -4,14 +4,11 @@ import {
   GraduationCap, 
   UserPlus, 
   Users, 
-  UserCheck, 
   ClipboardCheck, 
   BookOpen, 
   BarChart3, 
   Building, 
-  Settings, 
   X,
-  Shield,
   School
 } from 'lucide-react';
 import { NavigationTab, EmployeeProfile } from '../types';
@@ -34,13 +31,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const role = profile?.role?.toLowerCase() || 'teacher';
   const isPrincipal = role === 'principal';
   const isAdmin = role === 'admin';
-  const isSuperAdmin = role === 'super_admin';
   const isTeacher = role === 'teacher';
+  const isSuperAdmin = role === 'super_admin';
 
-  const portalTitle = isPrincipal 
-    ? 'Principal Portal' 
-    : isTeacher 
-    ? 'Teacher Portal' 
+  const portalTitle = isSuperAdmin
+    ? 'Super Admin'
+    : isPrincipal
+    ? 'Principal Portal'
+    : isTeacher
+    ? 'Teacher Portal'
     : 'Admin Portal';
 
   // Navigation items strictly per role specification
@@ -51,7 +50,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     badge: string | null;
   }>;
 
-  if (isPrincipal) {
+  if (isSuperAdmin) {
+    navItems = [
+      { tab: 'platform' as NavigationTab, label: 'Schools & Users', icon: School, badge: null },
+    ];
+  } else if (isPrincipal) {
     navItems = [
       {
         tab: 'dashboard' as NavigationTab,
@@ -70,12 +73,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         label: 'Admissions',
         icon: UserPlus,
         badge: 'Intake',
-      },
-      {
-        tab: 'teachers' as NavigationTab,
-        label: 'Teachers',
-        icon: UserCheck,
-        badge: null,
       },
       {
         tab: 'employees' as NavigationTab,
@@ -105,12 +102,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         tab: 'school' as NavigationTab,
         label: 'School Information',
         icon: Building,
-        badge: null,
-      },
-      {
-        tab: 'settings' as NavigationTab,
-        label: 'Profile / Settings',
-        icon: Settings,
         badge: null,
       },
     ];
@@ -164,12 +155,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         icon: Building,
         badge: null,
       },
-      {
-        tab: 'settings' as NavigationTab,
-        label: 'Profile / Settings',
-        icon: Settings,
-        badge: null,
-      },
     ];
   } else {
     // Teacher Navigation
@@ -203,12 +188,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         label: 'Reports',
         icon: BarChart3,
         badge: 'Limited',
-      },
-      {
-        tab: 'settings' as NavigationTab,
-        label: 'Profile / Settings',
-        icon: Settings,
-        badge: null,
       },
     ];
   }
@@ -323,15 +302,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
-        {/* Sidebar Footer */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950/60">
-          <div className="px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 text-[11px] text-slate-400 flex items-center gap-2">
-            <Shield className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-            <span className="truncate">
-              RLS Enabled • School #{profile?.school_id}
-            </span>
-          </div>
-        </div>
       </aside>
     </>
   );

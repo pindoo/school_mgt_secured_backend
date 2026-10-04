@@ -29,7 +29,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
     if (result.success) {
       onClose();
     } else {
-      setErrorMsg(result.error || 'Failed to delete student from Supabase.');
+      setErrorMsg(result.error || 'Failed to delete the student record.');
     }
   };
 

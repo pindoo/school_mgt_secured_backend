@@ -172,11 +172,11 @@ const matchGrade =
               Students Roster
             </h2>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">
-              School #{profile.school_id}
+              Your School
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Displaying student records authorized by Supabase Row Level Security.
+            Student records for your school.
           </p>
         </div>
 
@@ -309,7 +309,7 @@ const matchGrade =
             Loading students...
           </p>
           <p className="text-xs text-slate-500">
-            Loading student records for School ID #{profile.school_id}
+            Loading student records
           </p>
         </div>
       )}
@@ -332,7 +332,7 @@ const matchGrade =
         </div>
       )}
 
-      {/* Empty State (0 students in database) */}
+      {/* Empty State (0 students in records) */}
       {!isLoading && !error && students.length === 0 && (
         <div className="p-16 bg-slate-950 border border-slate-800 rounded-2xl text-center space-y-3">
           <div className="h-14 w-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-500">
@@ -340,7 +340,7 @@ const matchGrade =
           </div>
           <h3 className="text-base font-bold text-white">No students enrolled yet</h3>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
-            There are currently no student records registered under School #{profile.school_id}.
+            There are currently no student records registered for this school.
           </p>
           {canAddStudent && (
             <button
@@ -388,7 +388,7 @@ const matchGrade =
             </span>
           </div>
           <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">
-            Read-Only • Database RLS Enforced
+            Read-Only access
           </span>
         </div>
       )}

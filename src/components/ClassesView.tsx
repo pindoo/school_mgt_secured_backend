@@ -66,11 +66,15 @@ export const ClassesView: React.FC<ClassesViewProps> = ({
       }
     });
 
+    const configuredGrades = Array.from({ length: 10 }, (_, index) => String(index + 1));
+    configuredGrades.forEach((grade) => {
+      if (!map[grade]) {
+        map[grade] = { grade, total: 0, sections: new Set<string>(), boys: 0, girls: 0 };
+      }
+    });
+
     return Object.values(map).sort((a, b) =>
-      a.grade.localeCompare(b.grade, undefined, {
-        numeric: true,
-        sensitivity: 'base',
-      })
+      a.grade.localeCompare(b.grade, undefined, { numeric: true, sensitivity: 'base' })
     );
   }, [students]);
 
@@ -89,16 +93,16 @@ export const ClassesView: React.FC<ClassesViewProps> = ({
           </h2>
 
           <p className="text-xs text-slate-400">
-            Active grades and class distribution for{' '}
+            Grades 1–10 and class distribution for{' '}
             <span className="text-slate-300 font-medium">
-              {school?.school_name || `School #${profile.school_id}`}
+              {school?.school_name || 'Your School'}
             </span>
             .
           </p>
         </div>
 
         <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300">
-          Total Class Groups:{' '}
+          Grade Levels:{' '}
           <strong className="text-white">{classesData.length}</strong>
         </div>
       </div>
@@ -109,7 +113,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({
           <BookOpen className="h-8 w-8 text-slate-500 mx-auto opacity-40" />
 
           <h3 className="text-sm font-semibold text-slate-200">
-            No classes registered
+            Grades 1–10
           </h3>
 
           <p className="text-xs text-slate-500">
@@ -169,7 +173,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({
                             </button>
                           ))
                         ) : (
-                          <span className="text-slate-500">General</span>
+                          <span className="text-slate-500">No sections yet</span>
                         )}
                       </div>
                     </div>

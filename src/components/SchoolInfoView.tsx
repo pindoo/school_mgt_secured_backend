@@ -41,10 +41,10 @@ export const SchoolInfoView: React.FC<SchoolInfoViewProps> = ({
               Verified Educational Institution
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {school?.school_name || `School #${profile.school_id}`}
+              {school?.school_name || 'Your School'}
             </h1>
             <p className="text-xs text-slate-400 font-mono">
-              School Identifier: {profile.school_id}
+              School {profile.school_id}
             </p>
           </div>
         </div>
@@ -58,7 +58,7 @@ export const SchoolInfoView: React.FC<SchoolInfoViewProps> = ({
             School Name
           </span>
           <p className="text-base font-bold text-white truncate" title={school?.school_name}>
-            {school?.school_name || `School #${profile.school_id}`}
+            {school?.school_name || 'Your School'}
           </p>
           <span className="text-[10px] text-slate-500 block mt-1">Official Registry Name</span>
         </div>
@@ -105,7 +105,7 @@ export const SchoolInfoView: React.FC<SchoolInfoViewProps> = ({
 
         <div className="space-y-3 text-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b border-slate-900 gap-1">
-            <span className="text-slate-400">Database Record Created:</span>
+            <span className="text-slate-400">Established:</span>
             <span className="text-slate-200 font-mono">
               {school?.created_at ? new Date(school.created_at).toLocaleDateString() : 'Active Registration'}
             </span>
@@ -115,7 +115,7 @@ export const SchoolInfoView: React.FC<SchoolInfoViewProps> = ({
             <span className="text-slate-400">Security Architecture:</span>
             <span className="text-emerald-400 flex items-center gap-1">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Row Level Security Active (isolated per school_id)
+              Secure school workspace
             </span>
           </div>
 

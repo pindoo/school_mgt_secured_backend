@@ -7,10 +7,10 @@ import {
   AlertCircle, 
   Building2, 
   KeyRound, 
-  Info,
   UserCheck
 } from 'lucide-react';
 import { EmployeeProfile, School } from '../types';
+import { inviteManagedUser } from '../lib/schoolApi';
 
 interface EmployeesViewProps {
   employees: EmployeeProfile[];
@@ -31,6 +31,11 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [inviteName, setInviteName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteSaving, setInviteSaving] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp) => {
@@ -64,25 +69,23 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={isLoading}
-          className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition disabled:opacity-50 cursor-pointer self-start md:self-auto"
-          title="Refresh employees"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
-
-      {/* Security notice regarding staff management */}
-      <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400 flex items-start gap-3">
-        <Info className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-        <div className="leading-relaxed">
-          <p className="font-semibold text-slate-200">Security Architecture:</p>
-          <p className="mt-0.5">
-            Passwords and sensitive credentials are encrypted and managed exclusively via Supabase Authentication. No passwords or tokens are stored in application state or displayed.
-          </p>
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <button
+            type="button"
+            onClick={() => { setInviteError(null); setIsInviteOpen(true); }}
+            className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition"
+          >
+            Add Teacher
+          </button>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isLoading}
+            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition disabled:opacity-50 cursor-pointer"
+            title="Refresh employees"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
@@ -141,7 +144,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
         </div>
       )}
 
-      {/* Employees Table: Full Name, Role, School ID */}
+      {/* Employees Table */}
       {!isLoading && !error && (
         <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
           <div className="overflow-x-auto">
@@ -150,7 +153,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                 <tr className="border-b border-slate-800 text-slate-400 bg-slate-900/80 uppercase font-semibold text-[11px] tracking-wider">
                   <th className="py-3 px-4">Full Name</th>
                   <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">School ID</th>
+                  
                   <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
@@ -195,11 +198,6 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                         </span>
                       </td>
 
-                      {/* School ID */}
-                      <td className="py-3.5 px-4 font-mono text-slate-300">
-                        #{emp.school_id}
-                      </td>
-
                       {/* Status */}
                       <td className="py-3.5 px-4">
                         <span className="inline-flex items-center gap-1.5 text-emerald-400 text-[11px]">
@@ -216,7 +214,47 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
 
           <div className="px-6 py-3 bg-slate-900/60 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
             <span>Total Staff: {filteredEmployees.length}</span>
-            <span className="font-mono">School ID #{currentProfile.school_id}</span>
+            <span className="font-mono">School staff</span>
+          </div>
+        </div>
+      )}
+
+      {isInviteOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl p-6">
+            <h3 className="text-lg font-bold text-white">Add Teacher</h3>
+            <p className="text-xs text-slate-400 mt-1">The teacher will receive an email invitation and create their own password.</p>
+            {inviteError && <p className="mt-3 text-xs text-rose-300 bg-rose-950/30 border border-rose-500/30 rounded-lg px-3 py-2">{inviteError}</p>}
+            <form
+              className="space-y-3 mt-5"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                setInviteSaving(true);
+                setInviteError(null);
+                const result = await inviteManagedUser({
+                  email: inviteEmail.trim(),
+                  full_name: inviteName.trim(),
+                  role: 'teacher',
+                  school_id: currentProfile.school_id,
+                });
+                setInviteSaving(false);
+                if (result.error) {
+                  setInviteError(result.error);
+                  return;
+                }
+                setInviteName('');
+                setInviteEmail('');
+                setIsInviteOpen(false);
+                onRefresh();
+              }}
+            >
+              <input value={inviteName} onChange={(e) => setInviteName(e.target.value)} required maxLength={120} placeholder="Teacher full name" className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500" />
+              <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required maxLength={254} type="email" placeholder="Teacher email address" className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500" />
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setIsInviteOpen(false)} className="px-4 py-2 rounded-lg border border-slate-700 text-slate-300 text-xs">Cancel</button>
+                <button disabled={inviteSaving} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-semibold">{inviteSaving ? 'Sending…' : 'Send invitation'}</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

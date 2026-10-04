@@ -1,12 +1,9 @@
 import React from 'react';
 import { 
   Building2, 
-  ShieldCheck, 
   LogOut, 
-  Settings, 
   Menu, 
   User,
-  GraduationCap
 } from 'lucide-react';
 import { EmployeeProfile, School } from '../types';
 
@@ -15,7 +12,6 @@ interface HeaderProps {
   school: School | null;
   onLogout: () => void;
   onToggleSidebar: () => void;
-  onOpenSettings: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,11 +19,12 @@ export const Header: React.FC<HeaderProps> = ({
   school,
   onLogout,
   onToggleSidebar,
-  onOpenSettings,
 }) => {
-  const roleName = profile?.role ? profile.role.toUpperCase() : 'STAFF';
-  const roleColor = 
-    profile?.role === 'principal' 
+  const roleName = profile?.role === 'super_admin' ? 'SUPER ADMIN' : profile?.role ? profile.role.toUpperCase() : 'STAFF';
+  const roleColor =
+    profile?.role === 'super_admin'
+    ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+    : profile?.role === 'principal' 
       ? 'bg-purple-500/10 text-purple-400 border-purple-500/30' 
       : profile?.role === 'admin'
       ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
@@ -54,22 +51,17 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-bold text-sm sm:text-base text-white tracking-tight leading-tight truncate max-w-[200px] sm:max-w-md">
-                {school?.school_name || `School #${profile?.school_id || ''}`}
+                {profile?.role === 'super_admin' ? 'SchoolOS Platform' : (school?.school_name || `School #${profile?.school_id || ''}`)}
               </h2>
               {profile && (
                 <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase shrink-0 ${roleColor}`}>
-                  {profile.role === 'principal' ? 'Principal Portal' : profile.role === 'teacher' ? 'Teacher Portal' : 'Admin Portal'}
+                  {profile.role === 'super_admin' ? 'Super Admin' : profile.role === 'principal' ? 'Principal Portal' : profile.role === 'teacher' ? 'Teacher Portal' : 'Admin Portal'}
                 </span>
               )}
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-400">
               <span className="font-mono text-[11px] text-slate-300">
-                School ID: #{profile?.school_id}
-              </span>
-              <span className="hidden sm:inline text-slate-600">•</span>
-              <span className="hidden sm:inline text-[11px] text-emerald-400 flex items-center gap-1 font-mono">
-                <ShieldCheck className="h-3 w-3" />
-                RLS Authoritative
+                School workspace
               </span>
             </div>
           </div>
@@ -89,16 +81,6 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
         )}
-
-        {/* Settings button */}
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          title="Supabase Settings & Diagnostics"
-          className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer"
-        >
-          <Settings className="h-4 w-4" />
-        </button>
 
         {/* Logout button */}
         <button

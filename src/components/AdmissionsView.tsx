@@ -110,7 +110,6 @@ export const AdmissionsView: React.FC<AdmissionsViewProps> = ({
           </div>
 
           <div className="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 font-mono">
-            Assigned School ID: <strong className="text-white font-bold">#{profile.school_id}</strong>
           </div>
         </div>
       </div>
@@ -293,7 +292,7 @@ export const AdmissionsView: React.FC<AdmissionsViewProps> = ({
                 School ID Assignment
               </label>
               <div className="px-3.5 py-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-400 flex items-center justify-between font-mono">
-                <span>Auto-Locked to School #{profile.school_id}</span>
+                <span>Assigned to this school</span>
                 <ShieldCheck className="h-4 w-4 text-emerald-400" />
               </div>
             </div>
@@ -413,7 +412,7 @@ export const AdmissionsView: React.FC<AdmissionsViewProps> = ({
             {isSubmitting ? (
               <>
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                <span>Enrolling Student into Supabase...</span>
+                <span>Saving student record...</span>
               </>
             ) : (
               <>

@@ -36,19 +36,28 @@ export interface DashboardSummary {
   school: School | null;
   studentCount: number;
   employeeCount: number;
-  classCount: number;
   recentStudents: Student[];
 }
 
 export type NavigationTab = 
   | 'dashboard'
-  | 'schools'
   | 'students'
   | 'admissions'
-  | 'teachers'
   | 'employees'
   | 'attendance'
   | 'classes'
   | 'reports'
   | 'school'
-  | 'settings';
+  | 'platform'
+;
+
+export interface ManagedUser extends EmployeeProfile {
+  email: string;
+  school_name?: string;
+}
+
+export interface PlatformSchool {
+  id: number;
+  created_at?: string;
+  school_name: string;
+}

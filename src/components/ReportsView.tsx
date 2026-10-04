@@ -120,15 +120,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-semibold mb-2">
             <BarChart3 className="h-3.5 w-3.5" />
-            {isTeacher ? 'Academic Class Demographics (Teacher Limited View)' : 'School Analytics & Demographics'}
+            {isTeacher ? 'Academic Class Demographics (Teacher View)' : 'School Analytics & Demographics'}
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
             {isTeacher ? 'Academic Class Reports' : 'Institutional Reports'}
           </h2>
           <p className="text-xs text-slate-400">
             {isTeacher 
-              ? `Class and section distributions for ${school?.school_name || `School #${profile.school_id}`}.`
-              : `Real-time enrollment metrics for ${school?.school_name || `School #${profile.school_id}`}.`}
+              ? `Class and section distributions for ${school?.school_name || 'Your School'}.`
+              : `Real-time enrollment metrics for ${school?.school_name || 'Your School'}.`}
           </p>
         </div>
 
@@ -144,7 +144,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           </button>
         ) : (
           <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 font-mono self-start sm:self-auto">
-            Teacher View • Limited Analytics
+            Teacher Analytics
           </div>
         )}
       </div>
