@@ -1,5 +1,5 @@
 
-import { EmployeeProfile, School, Student, StudentFormData } from '../types';
+import { DashboardSummary, EmployeeProfile, School, Student, StudentFormData } from '../types';
 import {
   isMockModeActive,
   getMockStoredEmployees,
@@ -45,6 +45,30 @@ export async function fetchUserProfile(_userId?: string): Promise<{
   };
 }
 
+export async function fetchDashboardSummary(): Promise<{
+  summary: DashboardSummary | null;
+  error: string | null;
+}> {
+  if (isMockModeActive()) {
+    const school = getMockSchoolDetails(0);
+    const students = getMockStudentsBySchool(school?.id || 0);
+    const employees = getMockEmployeesBySchool(school?.id || 0);
+    return {
+      summary: {
+        school,
+        studentCount: students.length,
+        employeeCount: employees.length,
+        classCount: new Set(students.map((s) => s.class_grade).filter(Boolean)).size,
+        recentStudents: [...students].sort((a, b) => b.id - a.id).slice(0, 5),
+      },
+      error: null,
+    };
+  }
+
+  const result = await apiRequest<DashboardSummary>('/api/dashboard-summary');
+  return { summary: result.data, error: result.error };
+}
+
 export async function fetchSchoolDetails(_schoolId?: number): Promise<{
   school: School | null;
   error: string | null;
@@ -53,7 +77,7 @@ export async function fetchSchoolDetails(_schoolId?: number): Promise<{
     return { school: getMockSchoolDetails(_schoolId || 0), error: null };
   }
 
-  const result = await apiRequest<{ school: School; students: Student[]; employees: EmployeeProfile[] }>('/api/bootstrap');
+  const result = await apiRequest<DashboardSummary>('/api/dashboard-summary');
   return { school: result.data?.school || null, error: result.error };
 }
 
@@ -229,8 +253,8 @@ export async function fetchEmployeesBySchool(_schoolId?: number): Promise<{
     return { employees: getMockEmployeesBySchool(_schoolId || 0), error: null };
   }
 
-  const result = await apiRequest<{ school: School; students: Student[]; employees: EmployeeProfile[] }>('/api/bootstrap');
-  return { employees: result.data?.employees || [], error: result.error };
+  const result = await apiRequest<EmployeeProfile[]>('/api/employees');
+  return { employees: result.data || [], error: result.error };
 }
 
 export async function testBackendConnection(): Promise<{ success: boolean; message: string }> {

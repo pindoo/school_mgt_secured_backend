@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback, useRef } from 'react';
 import { clearMockSession, setMockModeActive } from './lib/mockStore';
 import { loginWithBackend, getBackendSession, logoutFromBackend } from './lib/authApi';
 import { 
-  fetchSchoolDetails, 
+  fetchDashboardSummary,
   fetchStudentsBySchool, 
   fetchEmployeesBySchool,
   addStudent,
@@ -10,6 +10,7 @@ import {
   deleteStudent
 } from './lib/schoolApi';
 import { 
+  DashboardSummary,
   NavigationTab, 
   EmployeeProfile, 
   School, 
@@ -21,18 +22,21 @@ import {
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { LoginView } from './components/LoginView';
-import { DashboardView } from './components/DashboardView';
-import { StudentsView } from './components/StudentsView';
 import { StudentModal } from './components/StudentModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
-import { AdmissionsView } from './components/AdmissionsView';
-import { EmployeesView } from './components/EmployeesView';
-import { AttendanceView } from './components/AttendanceView';
-import { ClassesView } from './components/ClassesView';
-import { ReportsView } from './components/ReportsView';
-import { SchoolInfoView } from './components/SchoolInfoView';
-import { SettingsView } from './components/SettingsView';
 import { UpdatePasswordView } from './components/UpdatePasswordView';
+
+// Heavy dashboard modules are code-split so the sign-in page does not download
+// every school-management screen before the user has authenticated.
+const DashboardView = lazy(() => import('./components/DashboardView').then((m) => ({ default: m.DashboardView })));
+const StudentsView = lazy(() => import('./components/StudentsView').then((m) => ({ default: m.StudentsView })));
+const AdmissionsView = lazy(() => import('./components/AdmissionsView').then((m) => ({ default: m.AdmissionsView })));
+const EmployeesView = lazy(() => import('./components/EmployeesView').then((m) => ({ default: m.EmployeesView })));
+const AttendanceView = lazy(() => import('./components/AttendanceView').then((m) => ({ default: m.AttendanceView })));
+const ClassesView = lazy(() => import('./components/ClassesView').then((m) => ({ default: m.ClassesView })));
+const ReportsView = lazy(() => import('./components/ReportsView').then((m) => ({ default: m.ReportsView })));
+const SchoolInfoView = lazy(() => import('./components/SchoolInfoView').then((m) => ({ default: m.SchoolInfoView })));
+const SettingsView = lazy(() => import('./components/SettingsView').then((m) => ({ default: m.SettingsView })));
 import { CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
 
 export default function App() {
@@ -51,11 +55,12 @@ export default function App() {
   });
   const [resetSuccessNotice, setResetSuccessNotice] = useState<string | null>(null);
 
-  // Authenticated User & School data
+  // Authenticated user & lightweight dashboard summary. Full rosters are loaded only
+  // when their module is opened, then kept in memory for the current session.
   const [profile, setProfile] = useState<EmployeeProfile | null>(null);
   const [school, setSchool] = useState<School | null>(null);
+  const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
 
-  // Core Data
   const [students, setStudents] = useState<Student[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [studentsError, setStudentsError] = useState<string | null>(null);
@@ -64,47 +69,47 @@ export default function App() {
   const [employeesLoading, setEmployeesLoading] = useState(false);
   const [employeesError, setEmployeesError] = useState<string | null>(null);
 
+  const cacheRef = useRef({
+    summaryAt: 0,
+    studentsAt: 0,
+    employeesAt: 0,
+  });
+  const CACHE_TTL = 30_000;
+
   // Navigation & UI state
   const [currentTab, setCurrentTab] = useState<NavigationTab>('dashboard');
   const [selectedGrade, setSelectedGrade] = useState<string | undefined>(undefined);
-const [selectedSection, setSelectedSection] = useState<string | undefined>(undefined);
+  const [selectedSection, setSelectedSection] = useState<string | undefined>(undefined);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-  // Modals state
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
-
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
-
-  // Route protection state (e.g. if user types #/admin or #/principal in browser)
   const [routeRestrictionError, setRouteRestrictionError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({ text, type });
+    window.setTimeout(() => setToastMessage(null), 3500);
+  };
 
   useEffect(() => {
     const handleRouteChange = () => {
       if (!profile) return;
       const role = profile.role?.toLowerCase();
-
-      // Check both hash and pathname
       const hashStr = window.location.hash.toLowerCase().replace(/^#\/?/, '');
       const pathStr = window.location.pathname.toLowerCase().replace(/^\//, '');
       const target = hashStr || pathStr;
-
-      if (target.startsWith('principal')) {
-        if (role !== 'principal') {
-          setRouteRestrictionError('Access Restricted: You are not authorized to access the Principal Portal or Principal controls.');
-          return;
-        }
-      } else if (target.startsWith('admin')) {
-        if (role === 'teacher') {
-          setRouteRestrictionError('Access Restricted: Teachers are not authorized to access the Admin Portal.');
-          return;
-        }
+      if (target.startsWith('principal') && role !== 'principal') {
+        setRouteRestrictionError('Access Restricted: You are not authorized to access the Principal Portal or Principal controls.');
+        return;
       }
-
+      if (target.startsWith('admin') && role === 'teacher') {
+        setRouteRestrictionError('Access Restricted: Teachers are not authorized to access the Admin Portal.');
+        return;
+      }
       setRouteRestrictionError(null);
     };
-
     handleRouteChange();
     window.addEventListener('hashchange', handleRouteChange);
     window.addEventListener('popstate', handleRouteChange);
@@ -114,38 +119,55 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
     };
   }, [profile]);
 
-  // Toast notifications
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-
-  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
-    setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 3500);
-  };
-
-  // 1. Fetch all data for authenticated user's school
-  const loadSchoolData = useCallback(async (schoolId: number) => {
-    // A. School Details
-    const { school: schoolData } = await fetchSchoolDetails(schoolId);
-    if (schoolData) {
-      setSchool(schoolData);
+  const loadDashboardData = useCallback(async (force = false) => {
+    if (!force && Date.now() - cacheRef.current.summaryAt < CACHE_TTL) return;
+    const { summary, error } = await fetchDashboardSummary();
+    if (error || !summary) {
+      setStudentsError(error);
+      return;
     }
+    setDashboardSummary(summary);
+    setSchool(summary.school);
+    cacheRef.current.summaryAt = Date.now();
+  }, []);
 
-    // B. Students
+  const loadStudents = useCallback(async (force = false) => {
+    if (!force && Date.now() - cacheRef.current.studentsAt < CACHE_TTL) return;
     setStudentsLoading(true);
     setStudentsError(null);
-    const { students: studentList, error: sErr } = await fetchStudentsBySchool(schoolId);
+    const { students: studentList, error } = await fetchStudentsBySchool(profile?.school_id);
     setStudentsLoading(false);
-    if (sErr) setStudentsError(sErr);
-    else setStudents(studentList);
+    if (error) setStudentsError(error);
+    else {
+      setStudents(studentList);
+      cacheRef.current.studentsAt = Date.now();
+    }
+  }, [profile?.school_id]);
 
-    // C. Employees
+  const loadEmployees = useCallback(async (force = false) => {
+    if (!force && Date.now() - cacheRef.current.employeesAt < CACHE_TTL) return;
     setEmployeesLoading(true);
     setEmployeesError(null);
-    const { employees: empList, error: eErr } = await fetchEmployeesBySchool(schoolId);
+    const { employees: employeeList, error } = await fetchEmployeesBySchool(profile?.school_id);
     setEmployeesLoading(false);
-    if (eErr) setEmployeesError(eErr);
-    else setEmployees(empList);
-  }, []);
+    if (error) setEmployeesError(error);
+    else {
+      setEmployees(employeeList);
+      cacheRef.current.employeesAt = Date.now();
+    }
+  }, [profile?.school_id]);
+
+  // Load only the data required by the active module. This prevents a dashboard
+  // visit from downloading full student and employee rosters.
+  useEffect(() => {
+    if (!isAuthenticated || !profile) return;
+    if (currentTab === 'students' || currentTab === 'admissions' || currentTab === 'attendance' || currentTab === 'classes' || currentTab === 'reports') {
+      void loadStudents();
+    }
+    if (currentTab === 'teachers' || currentTab === 'employees') {
+      void loadEmployees();
+    }
+  }, [currentTab, isAuthenticated, profile, loadStudents, loadEmployees]);
 
   // 2. Verify the server-managed session.
   const initUserSession = useCallback(async () => {
@@ -159,6 +181,17 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
     }
 
     try {
+      // Anonymous visitors should not trigger an authentication/database lookup.
+      // The backend sets this non-sensitive hint after successful sign-in.
+      const hasSessionHint = typeof document !== 'undefined' && document.cookie.split(';').some((cookie) => cookie.trim().startsWith('schoolos_session_hint='));
+      if (!hasSessionHint) {
+        setIsAuthenticated(false);
+        setProfile(null);
+        setUserEmail('');
+        setSessionChecked(true);
+        return;
+      }
+
       const session = await getBackendSession();
 
       if (!session.authenticated || !session.profile) {
@@ -174,9 +207,7 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
       setProfile(session.profile);
       setUserEmail(session.email);
 
-      if (session.profile.school_id) {
-        await loadSchoolData(session.profile.school_id);
-      }
+      await loadDashboardData(true);
     } catch (e) {
       console.error('Session init error:', e);
       setIsAuthenticated(false);
@@ -184,7 +215,7 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
     } finally {
       setSessionChecked(true);
     }
-  }, [loadSchoolData]);
+  }, [loadDashboardData]);
 
   useEffect(() => {
     initUserSession();
@@ -210,7 +241,7 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
       setProfile(result.profile);
       setUserEmail(result.email || emailInput.trim());
       setIsAuthenticated(true);
-      await loadSchoolData(result.profile.school_id);
+      await loadDashboardData(true);
 
       return { success: true };
     } catch (err: any) {
@@ -230,6 +261,8 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
     setUserEmail('');
     setStudents([]);
     setEmployees([]);
+    setDashboardSummary(null);
+    cacheRef.current = { summaryAt: 0, studentsAt: 0, employeesAt: 0 };
     setCurrentTab('dashboard');
     showToast('You have been logged out.');
   };
@@ -245,7 +278,9 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
       const { success, error } = await updateStudent(studentToEdit.id, formData, profile.school_id);
       if (success) {
         showToast(`Student ${formData.full_name} updated successfully.`);
-        loadSchoolData(profile.school_id);
+        setStudents((current) => current.map((student) => student.id === studentToEdit.id ? { ...student, ...formData } : student));
+        cacheRef.current.studentsAt = Date.now();
+        await loadDashboardData(true);
         setStudentToEdit(null);
         return { success: true };
       }
@@ -255,7 +290,9 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
       const { student, error } = await addStudent(formData, profile.school_id);
       if (student) {
         showToast(`Student ${student.full_name} enrolled successfully!`);
-        loadSchoolData(profile.school_id);
+        setStudents((current) => [student, ...current.filter((item) => item.id !== student.id)]);
+        cacheRef.current.studentsAt = Date.now();
+        await loadDashboardData(true);
         return { success: true };
       }
       return { success: false, error };
@@ -272,7 +309,9 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
     const { success, error } = await deleteStudent(studentId, profile.school_id);
     if (success) {
       showToast('Student deleted successfully.');
-      loadSchoolData(profile.school_id);
+      setStudents((current) => current.filter((student) => student.id !== studentId));
+      cacheRef.current.studentsAt = Date.now();
+      await loadDashboardData(true);
       setStudentToDelete(null);
       return { success: true };
     }
@@ -286,7 +325,9 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
     }
     const { student, error } = await addStudent(data, profile.school_id);
     if (student) {
-      loadSchoolData(profile.school_id);
+      setStudents((current) => [student, ...current.filter((item) => item.id !== student.id)]);
+      cacheRef.current.studentsAt = Date.now();
+      await loadDashboardData(true);
       return { success: true, student };
     }
     return { success: false, error };
@@ -405,6 +446,7 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
         )}
 
         {/* Main Tab Views with Route Protection */}
+        <Suspense fallback={<div className="flex-1 p-8 flex items-center justify-center text-xs text-slate-400">Loading module...</div>}>
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {/* 1. URL Route Rejection (e.g. typing #/admin as teacher or #/principal as non-principal) */}
           {routeRestrictionError ? (
@@ -457,7 +499,10 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
                   profile={profile}
                   school={school}
                   students={students}
-                  employeesCount={employees.length}
+                  studentCount={dashboardSummary?.studentCount ?? students.length}
+                  classCount={dashboardSummary?.classCount ?? 0}
+                  recentStudents={dashboardSummary?.recentStudents ?? students.slice(0, 5)}
+                  employeesCount={dashboardSummary?.employeeCount ?? employees.length}
                   onNavigate={setCurrentTab}
                   onOpenAddStudent={handleOpenAddModal}
                 />
@@ -469,7 +514,7 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
                   isLoading={studentsLoading}
                   error={studentsError}
                   profile={profile}
-                  onRefresh={() => loadSchoolData(profile.school_id)}
+                  onRefresh={() => loadStudents(true)}
                   onOpenAddModal={handleOpenAddModal}
                   onOpenEditModal={handleOpenEditModal}
                   onOpenDeleteModal={handleOpenDeleteModal}
@@ -495,7 +540,7 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
                   error={employeesError}
                   school={school}
                   currentProfile={profile}
-                  onRefresh={() => loadSchoolData(profile.school_id)}
+                  onRefresh={() => loadEmployees(true)}
                 />
               )}
 
@@ -532,8 +577,8 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
                 <SchoolInfoView
                   school={school}
                   profile={profile}
-                  studentsCount={students.length}
-                  employeesCount={employees.length}
+                  studentsCount={dashboardSummary?.studentCount ?? students.length}
+                  employeesCount={dashboardSummary?.employeeCount ?? employees.length}
                 />
               )}
 
@@ -544,7 +589,7 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
                   userEmail={userEmail}
                   onConfigUpdated={() => {
                     if (profile?.school_id) {
-                      loadSchoolData(profile.school_id);
+                      void loadDashboardData(true);
                     }
                   }}
                 />
@@ -552,6 +597,7 @@ const [selectedSection, setSelectedSection] = useState<string | undefined>(undef
             </>
           )}
         </main>
+        </Suspense>
 
         {/* Global Modals */}
         <StudentModal

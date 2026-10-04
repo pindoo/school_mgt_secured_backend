@@ -19,6 +19,9 @@ interface DashboardViewProps {
   profile: EmployeeProfile;
   school: School | null;
   students: Student[];
+  studentCount: number;
+  classCount: number;
+  recentStudents: Student[];
   employeesCount: number;
   onNavigate: (tab: NavigationTab) => void;
   onOpenAddStudent: () => void;
@@ -28,23 +31,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   profile,
   school,
   students,
+  studentCount,
+  classCount,
+  recentStudents,
   employeesCount,
   onNavigate,
   onOpenAddStudent,
 }) => {
-  // Compute classes count
-  const uniqueClasses = new Set(
-    students
-      .map((s) => s.class_grade?.trim())
-      .filter((c) => Boolean(c) && c !== '—')
-  );
-  const totalClasses = uniqueClasses.size > 0 ? uniqueClasses.size : 0;
-
-  // Recent admissions (up to 5 most recent by admission_date or id)
-  const recentStudents = [...students]
-    .sort((a, b) => (b.id || 0) - (a.id || 0))
-    .slice(0, 5);
-
   const role = profile.role?.toLowerCase() || 'teacher';
   const isPrincipal = role === 'principal';
   const isAdmin = role === 'admin';
@@ -139,7 +132,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
             <p className="text-2xl font-bold text-white font-mono">
-              {students.length}
+              {studentCount}
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
               Pupils in School #{profile.school_id}
@@ -155,7 +148,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
             <p className="text-2xl font-bold text-white font-mono">
-              {totalClasses}
+              {classCount}
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
               Grade levels configured
@@ -222,7 +215,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
             <p className="text-2xl font-bold text-white font-mono">
-              {students.length}
+              {studentCount}
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
               Enrolled in School #{profile.school_id}
@@ -254,7 +247,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
             <p className="text-2xl font-bold text-white font-mono">
-              {totalClasses}
+              {classCount}
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
               Active Grade Levels
@@ -438,7 +431,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
                 <span className="text-slate-400 block text-[11px]">Total Admitted:</span>
                 <span className="text-xl font-bold font-mono text-white mt-1 block">
-                  {students.length}
+                  {studentCount}
                 </span>
                 <span className="text-[10px] text-slate-500">Active enrollments</span>
               </div>
@@ -495,7 +488,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
                 <span className="text-slate-400 block text-[11px]">Grade Levels:</span>
                 <span className="text-xl font-bold font-mono text-white mt-1 block">
-                  {totalClasses} Classes
+                  {classCount} Classes
                 </span>
                 <span className="text-[10px] text-slate-500">Active class groups</span>
               </div>
@@ -553,13 +546,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-center">
                 <span className="text-[11px] text-slate-400 block font-semibold">Total Pupils</span>
                 <span className="text-2xl font-bold font-mono text-white mt-1 block">
-                  {students.length}
+                  {studentCount}
                 </span>
               </div>
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-center">
                 <span className="text-[11px] text-slate-400 block font-semibold">Classes</span>
                 <span className="text-2xl font-bold font-mono text-indigo-400 mt-1 block">
-                  {totalClasses}
+                  {classCount}
                 </span>
               </div>
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-center">
@@ -607,13 +600,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </button>
             </div>
 
-            {students.length === 0 ? (
+            {recentStudents.length === 0 ? (
               <div className="py-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
                 No students enrolled in your school yet.
               </div>
             ) : (
               <div className="space-y-2">
-                {students.slice(0, 4).map((s) => (
+                {recentStudents.slice(0, 4).map((s) => (
                   <div key={s.id} className="p-2.5 bg-slate-900/60 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2.5">
                       <span className="font-mono text-blue-400 font-bold px-1.5 py-0.5 bg-blue-500/10 rounded">

@@ -1,5 +1,6 @@
 
 import express, { Request, Response, NextFunction } from 'express';
+import crypto from 'node:crypto';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const app = express();
@@ -16,6 +17,7 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 
 const ACCESS_COOKIE = 'schoolos_access';
 const REFRESH_COOKIE = 'schoolos_refresh';
+const SESSION_HINT_COOKIE = 'schoolos_session_hint';
 const ACCESS_MAX_AGE = 60 * 60 * 1000;
 const REFRESH_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 
@@ -32,6 +34,13 @@ type AuthedContext = {
   profile: Profile;
   supabase: SupabaseClient;
 };
+
+const profileCache = new Map<string, { profile: Profile | null; expiresAt: number }>();
+const PROFILE_CACHE_TTL = 15_000;
+
+function cacheKey(userId: string) {
+  return crypto.createHash('sha256').update(userId).digest('hex');
+}
 
 function serverClient(accessToken?: string) {
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -71,6 +80,13 @@ function setSessionCookies(res: Response, accessToken: string, refreshToken: str
     path: '/',
     maxAge: accessMaxAge,
   });
+  res.cookie(SESSION_HINT_COOKIE, '1', {
+    httpOnly: false,
+    secure,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: REFRESH_MAX_AGE,
+  });
   res.cookie(REFRESH_COOKIE, refreshToken, {
     httpOnly: true,
     secure,
@@ -85,6 +101,7 @@ function clearSessionCookies(res: Response) {
   const options = { httpOnly: true, secure, sameSite: 'lax' as const, path: '/' };
   res.clearCookie(ACCESS_COOKIE, options);
   res.clearCookie(REFRESH_COOKIE, options);
+  res.clearCookie(SESSION_HINT_COOKIE, { ...options, httpOnly: false });
 }
 
 function jsonError(res: Response, status: number, message: string) {
@@ -102,6 +119,10 @@ function normalizeProfile(row: any): Profile {
 }
 
 async function loadProfile(supabase: SupabaseClient, userId: string) {
+  const key = cacheKey(userId);
+  const cached = profileCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.profile;
+
   let { data, error } = await supabase
     .from('employee_profiles')
     .select('id, user_id, school_id, role, full_name')
@@ -119,7 +140,9 @@ async function loadProfile(supabase: SupabaseClient, userId: string) {
   }
 
   if (error) throw new Error(error.message);
-  return data ? normalizeProfile(data) : null;
+  const profile = data ? normalizeProfile(data) : null;
+  profileCache.set(key, { profile, expiresAt: Date.now() + PROFILE_CACHE_TTL });
+  return profile;
 }
 
 async function authenticate(req: Request, res: Response): Promise<AuthedContext | null> {
@@ -339,22 +362,28 @@ app.post('/api/auth/password', async (req, res) => {
   }
 });
 
-app.get('/api/bootstrap', async (req, res) => {
+app.get('/api/dashboard-summary', async (req, res) => {
   try {
     const auth = await authenticate(req, res);
     if (!auth) return;
 
     const schoolId = auth.profile.school_id;
-
-    const [schoolResult, studentsResult, employeesResult] = await Promise.all([
+    const [schoolResult, studentCountResult, employeeCountResult, recentStudentsResult, classGradesResult] = await Promise.all([
       auth.supabase.from('schools').select('id, created_at, school_name').eq('id', schoolId).maybeSingle(),
-      auth.supabase.from('students').select('*').eq('school_id', schoolId).order('id', { ascending: false }),
-      auth.supabase.from('employee_profiles').select('id, user_id, school_id, role, full_name').eq('school_id', schoolId),
+      auth.supabase.from('students').select('id', { count: 'exact', head: true }).eq('school_id', schoolId),
+      auth.supabase.from('employee_profiles').select('id', { count: 'exact', head: true }).eq('school_id', schoolId),
+      auth.supabase
+        .from('students')
+        .select('id, created_at, school_id, roll_no, full_name, date_of_birth, gender, class_grade, section, guardian_name, guardian_phone, residential_address, admission_date')
+        .eq('school_id', schoolId)
+        .order('id', { ascending: false })
+        .limit(5),
+      auth.supabase.from('students').select('class_grade').eq('school_id', schoolId),
     ]);
 
-    if (schoolResult.error) return jsonError(res, 500, 'Unable to load school information.');
-    if (studentsResult.error) return jsonError(res, 500, 'Unable to load students.');
-    if (employeesResult.error) return jsonError(res, 500, 'Unable to load employee profiles.');
+    if (schoolResult.error || studentCountResult.error || employeeCountResult.error || recentStudentsResult.error || classGradesResult.error) {
+      return jsonError(res, 500, 'Unable to load dashboard summary.');
+    }
 
     const school = schoolResult.data
       ? {
@@ -364,7 +393,7 @@ app.get('/api/bootstrap', async (req, res) => {
         }
       : { id: schoolId, school_name: `School #${schoolId}` };
 
-    const students = (studentsResult.data || []).map((row: any) => ({
+    const recentStudents = (recentStudentsResult.data || []).map((row: any) => ({
       id: Number(row.id),
       created_at: row.created_at,
       school_id: Number(row.school_id),
@@ -380,14 +409,42 @@ app.get('/api/bootstrap', async (req, res) => {
       admission_date: row.admission_date ?? '',
     }));
 
-    const employees = (employeesResult.data || []).map(normalizeProfile);
+    const classCount = new Set(
+      (classGradesResult.data || [])
+        .map((row: any) => String(row.class_grade || '').trim())
+        .filter(Boolean)
+    ).size;
 
     return res.json({
       ok: true,
-      data: { school, students, employees },
+      data: {
+        school,
+        studentCount: studentCountResult.count || 0,
+        employeeCount: employeeCountResult.count || 0,
+        classCount,
+        recentStudents,
+      },
     });
   } catch {
-    return jsonError(res, 500, 'Unable to load school data.');
+    return jsonError(res, 500, 'Unable to load dashboard summary.');
+  }
+});
+
+app.get('/api/employees', async (req, res) => {
+  try {
+    const auth = await authenticate(req, res);
+    if (!auth) return;
+
+    const { data, error } = await auth.supabase
+      .from('employee_profiles')
+      .select('id, user_id, school_id, role, full_name')
+      .eq('school_id', auth.profile.school_id)
+      .order('full_name', { ascending: true });
+
+    if (error) return jsonError(res, 500, 'Unable to load employee profiles.');
+    return res.json({ ok: true, data: (data || []).map(normalizeProfile) });
+  } catch {
+    return jsonError(res, 500, 'Unable to load employee profiles.');
   }
 });
 

@@ -32,6 +32,14 @@ export interface Student {
 
 export type StudentFormData = Omit<Student, 'id' | 'created_at' | 'school_id'>;
 
+export interface DashboardSummary {
+  school: School | null;
+  studentCount: number;
+  employeeCount: number;
+  classCount: number;
+  recentStudents: Student[];
+}
+
 export type NavigationTab = 
   | 'dashboard'
   | 'schools'
