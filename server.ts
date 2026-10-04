@@ -1,7 +1,11 @@
-
-import app from './api/[...route]';
+import app from './api/index';
 
 const port = Number(process.env.PORT || 3001);
-app.listen(port, () => {
-  console.log(`SchoolOS API listening on http://localhost:${port}`);
-});
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`SchoolOS API listening on http://localhost:${port}`);
+  });
+}
+
+export default app;
