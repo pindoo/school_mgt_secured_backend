@@ -86,8 +86,8 @@ export const UpdatePasswordView: React.FC<UpdatePasswordViewProps> = ({
       return;
     }
 
-    if (newPassword.length < 6) {
-      setErrorMsg('Password must be at least 6 characters long.');
+    if (newPassword.length < 12) {
+      setErrorMsg('Password must be at least 12 characters long.');
       return;
     }
 
@@ -156,7 +156,7 @@ export const UpdatePasswordView: React.FC<UpdatePasswordViewProps> = ({
                 Set New Password
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Enter your new password below. Make sure it is at least 6 characters long.
+                Enter your new password below. Make sure it is at least 12 characters long.
               </p>
             </div>
 
@@ -190,9 +190,9 @@ export const UpdatePasswordView: React.FC<UpdatePasswordViewProps> = ({
                     autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password (min. 6 characters)"
+                    placeholder="Enter new password (min. 12 characters)"
                     required
-                    minLength={6}
+                    minLength={12}
                     className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl text-slate-100 placeholder:text-slate-500 text-xs transition outline-none font-mono"
                   />
                   <button
@@ -227,7 +227,7 @@ export const UpdatePasswordView: React.FC<UpdatePasswordViewProps> = ({
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter new password"
                     required
-                    minLength={6}
+                    minLength={12}
                     className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl text-slate-100 placeholder:text-slate-500 text-xs transition outline-none font-mono"
                   />
                   <button

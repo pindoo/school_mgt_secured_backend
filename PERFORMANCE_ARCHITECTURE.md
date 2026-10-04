@@ -46,3 +46,7 @@ Heavy dashboard modules are loaded with `React.lazy`. A new visitor does not dow
 The backend remains responsible for authentication, authorization, validation, and school scoping. Supabase RLS remains enabled and is not bypassed with a service-role key.
 
 The performance changes do not expose database credentials or table access to the browser.
+
+
+## Production hardening update
+The production client no longer contains the legacy mock/demo data store. Data is loaded only through authenticated `/api/*` calls, with dashboard summary data kept intentionally small and API responses marked `no-store`.

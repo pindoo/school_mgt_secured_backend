@@ -1,5 +1,4 @@
 import React, { Suspense, lazy, useState, useEffect, useCallback, useRef } from 'react';
-import { clearMockSession, setMockModeActive } from './lib/mockStore';
 import { loginWithBackend, getBackendSession, logoutFromBackend } from './lib/authApi';
 import { 
   fetchDashboardSummary,
@@ -235,8 +234,6 @@ export default function App() {
         return { success: false, error: result.error };
       }
 
-      clearMockSession();
-      setMockModeActive(false);
       setUnassignedProfileError(false);
       setProfile(result.profile);
       setUserEmail(result.email || emailInput.trim());
@@ -251,8 +248,6 @@ export default function App() {
 
   // 5. Logout handler
   const handleLogout = async () => {
-    clearMockSession();
-    setMockModeActive(false);
     await logoutFromBackend();
 
     setIsAuthenticated(false);
