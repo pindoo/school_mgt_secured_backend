@@ -1,0 +1,6 @@
+{
+  "name": "School Management System",
+  "description": "Comprehensive school management system with role-based access for principals, teachers, and staff to manage students, attendance, admissions, and classes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
