@@ -268,6 +268,7 @@ function requireOrigin(req: Request, res: Response, next: NextFunction) {
 
   const origin = typeof req.headers.origin === 'string' ? req.headers.origin.replace(/\/+$/, '') : '';
   const configured = (process.env.APP_URL || '').replace(/\/+$/, '');
+  const vercelOrigin = process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : '';
   const localAllowed = new Set(['http://localhost:3000', 'http://127.0.0.1:3000']);
 
   // Browser state-changing requests must carry an Origin. This blocks cross-site
@@ -275,7 +276,8 @@ function requireOrigin(req: Request, res: Response, next: NextFunction) {
   if (!origin) return jsonError(res, 403, 'Request origin is required.');
 
   if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
-    if (!configured || origin !== configured) return jsonError(res, 403, 'Request origin is not allowed.');
+    const allowedOrigins = new Set([configured, vercelOrigin].filter(Boolean));
+    if (!allowedOrigins.has(origin)) return jsonError(res, 403, 'Request origin is not allowed.');
   } else if (origin !== configured && !localAllowed.has(origin)) {
     return jsonError(res, 403, 'Request origin is not allowed.');
   }
